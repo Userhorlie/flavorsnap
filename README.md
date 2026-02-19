@@ -4,8 +4,6 @@
 
 ![FlavorSnap Logo](https://img.shields.io/badge/FlavorSnap-AI%20Food%20Classification-orange?style=for-the-badge&logo=react)
 ![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)
-![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
-
 **AI-Powered Food Classification Web Application**
 
 Snap a picture of your food and let AI identify the dish instantly!
