@@ -1,40 +1,46 @@
-import { useRouter } from "next/router";
-import Image from "next/image";
-import hero from "@/public/images/hero_img.png";
-export default function Home() {
-  const router = useRouter();
+import { useRef, useState } from "react";
+
+export default function Classify() {
+  const [image, setImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setImage(imageUrl);
+    }
+  };
 
   return (
-    <div className="bg-muted min-h-screen flex flex-col items-center justify-center px-4 py-8">
-      <header className="text-center max-w-2xl">
-        <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
-          🍲 Flavorsnap
-        </h1>
-        <p className="text-gray-700 text-lg mb-6">
-          Snap a picture of your food and let AI identify the dish and show you
-          its recipe.
-        </p>
-        <button
-          onClick={() => router.push("/classify")}
-          className="bg-accent text-white px-6 py-3 rounded-full font-semibold hover:bg-orange-600 transition"
-        >
-          Get Started
-        </button>
-      </header>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6">
+      <h2 className="text-3xl font-bold mb-6">Snap Your Food 🍛</h2>
 
-      <div className="mt-10 w-full max-w-md">
-        <Image
-          src={hero}
-          alt="Nigerian dish"
-          width={500}
-          height={300}
-          className="rounded-xl shadow-lg"
-        />
-      </div>
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        ref={fileInputRef}
+        onChange={handleImageChange}
+        className="hidden"
+      />
 
-      <footer className="mt-12 text-gray-500 text-sm">
-        Built with 💚 for Nigerian food lovers
-      </footer>
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="bg-accent text-white px-6 py-3 rounded-full"
+      >
+        Open Camera
+      </button>
+
+      {image && (
+        <div className="mt-6">
+          <img
+            src={image}
+            alt="Preview"
+            className="rounded-xl shadow-md max-w-sm"
+          />
+        </div>
+      )}
     </div>
   );
 }
