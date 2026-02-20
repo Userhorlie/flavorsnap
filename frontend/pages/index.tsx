@@ -133,12 +133,12 @@ export default function Classify() {
           {isUploading ? (
             <>
               <Spinner />
-              Uploading...
+              Uploading....
             </>
           ) : isClassifying ? (
             <>
               <Spinner />
-              Classifying...
+              Classifying....
             </>
           ) : (
             "Identify Dish"
