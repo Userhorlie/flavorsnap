@@ -1,61 +1,42 @@
-# Fix #5: Implement Comprehensive Error Handling and Error Boundaries
+# Fix #31: Implement Form Validation for Image Upload
 
 ## Summary
-This PR addresses the "No Error Boundaries" issue by implementing a complete error handling system for the React frontend. The application now gracefully handles component failures, API errors, and unexpected errors without crashing.
+This PR addresses the "No Form Validation" issue by implementing robust form validation using `react-hook-form` and `zod`. It ensures that users can only upload valid image files within the specified size limits, providing immediate and clear feedback.
 
 ## Changes Made
 
-### ✅ ErrorBoundary Component
-- **Location**: `frontend/components/ErrorBoundary.tsx`
-- **Features**:
-  - Catches and logs React component errors
-  - Displays user-friendly fallback UI with error message
-  - Includes retry button for recoverable errors
-  - Development-only error details for debugging
-  - Ready for error logging service integration
-
-### ✅ App-Wide Error Protection
-- **Location**: `frontend/pages/_app.tsx`
-- **Changes**: Wrapped entire Next.js app with ErrorBoundary
-- **Benefit**: Prevents app crashes from unexpected React errors
-
-### ✅ API Error Handling Utility
-- **Location**: `frontend/utils/api.ts`
-- **Features**:
-  - Comprehensive try-catch blocks for all API calls
-  - Automatic retry mechanisms with exponential backoff
-  - Custom ApiError class for structured error handling
-  - Smart retry logic (skips client errors except rate limits)
-  - Configurable retry attempts and delays
-
-### ✅ User-Friendly Error Messages
-- **Location**: `frontend/components/ErrorMessage.tsx`
-- **Features**:
-  - Three display variants: inline, modal, and toast
-  - Consistent styling with Tailwind CSS
-  - Retry and dismiss functionality
-  - Accessible design with proper ARIA labels
-
-### ✅ Enhanced Main Page
+### ✅ Form Validation Integration
 - **Location**: `frontend/pages/index.tsx`
-- **Changes**:
-  - Integrated API calls with comprehensive error handling
-  - Added loading states and user feedback
-  - Error display with retry options
-  - Clean separation of concerns
+- **Tech Stack**: `react-hook-form`, `zod`
+- **Features**:
+  - Replaced manual input handling with `useForm` hook
+  - Implemented Zod schema for strict validation
+  - Added real-time validation feedback
 
-### ✅ Sample API Endpoint
-- **Location**: `frontend/pages/api/classify.ts`
-- **Purpose**: Demonstrates error scenarios for testing
-- **Features**: Simulates realistic failures and delays
+### ✅ File Constraints
+- **Type Validation**: Restricts uploads to `.jpg`, `.jpeg`, `.png`, and `.webp`
+- **Size Limit**: Enforces a maximum file size of 10MB
+- **Required Field**: Ensures an image is selected before submission
+
+### ✅ User Experience Improvements
+- **Error Feedback**: Displays clear error messages for invalid file types or sizes using the `ErrorMessage` component
+- **Preview Logic**: Only shows image preview for valid files
+- **Accessibility**: Maintained ARIA labels and screen reader announcements
 
 ## Technical Implementation Details
 
-### Error Boundary Implementation
+### Zod Schema
 ```typescript
-<ErrorBoundary>
-  <Component {...pageProps} />
-</ErrorBoundary>
+const validationSchema = z.object({
+  image: z
+    .any()
+    .refine((files) => files?.length === 1, "Image is required.")
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 10MB.`)
+    .refine(
+      (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+      "Only .jpg, .jpeg, .png and .webp formats are supported."
+    ),
+});
 ```
 
 ### API Error Handling with Retry
@@ -73,26 +54,13 @@ const response = await api.post('/api/classify', data, {
 
 ## Acceptance Criteria Met
 
-- ✅ **Create ErrorBoundary component for React errors**
-- ✅ **Add try-catch blocks for API calls**
-- ✅ **Display user-friendly error messages**
-- ✅ **Implement retry mechanisms for failed requests**
-- ✅ **Wrap entire app in ErrorBoundary**
-
-## Testing
-
-The implementation includes:
-- Sample API endpoint that simulates random errors for testing
-- Error boundary that catches React component failures
-- Retry mechanisms that can be tested with network failures
-- User-friendly error messages with retry options
+- ✅ **Implement file type validation**
+- ✅ **Add file size limits**
+- ✅ **Show validation errors**
+- ✅ **Prevent invalid submissions**
 
 ## Impact
 
-This change significantly improves application stability and user experience by:
-- Preventing app crashes from component failures
-- Providing clear feedback when API calls fail
-- Allowing users to retry failed operations
-- Maintaining application state during error scenarios
+This update prevents server-side errors caused by invalid uploads and improves the overall user experience by guiding users to provide correct input formats.
 
-Closes #5
+Closes #31

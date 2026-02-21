@@ -1,35 +1,70 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { api } from "@/utils/api";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import type { GetStaticProps } from "next";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+const validationSchema = z.object({
+  image: z
+    .any()
+    .refine((files) => files?.length === 1, "Image is required.")
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 10MB.`)
+    .refine(
+      (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+      "Only .jpg, .jpeg, .png and .webp formats are supported."
+    ),
+});
+
+type FormValues = z.infer<typeof validationSchema>;
 
 export default function Classify() {
   const { t } = useTranslation("common");
-  const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [classification, setClassification] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const hiddenInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setImage(imageUrl);
-      setError(null);
-      setClassification(null);
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<FormValues>({
+    resolver: zodResolver(validationSchema),
+    mode: "onChange",
+  });
+
+  const imageFiles = watch("image");
+  const { ref: registerRef, ...registerRest } = register("image");
+
+  useEffect(() => {
+    if (imageFiles && imageFiles.length > 0) {
+      const file = imageFiles[0];
+      if (file.type && file.type.startsWith("image/")) {
+        const objectUrl = URL.createObjectURL(file);
+        setPreview(objectUrl);
+        setClassification(null);
+        setApiError(null);
+        return () => URL.revokeObjectURL(objectUrl);
+      }
+    } else {
+      setPreview(null);
     }
-  };
+  }, [imageFiles]);
 
-  const handleClassify = async () => {
-    if (!image) return;
-
-    setLoading(true);
-    setError(null);
+  const onSubmit = async (data: FormValues) => {
+    setApiError(null);
+    const file = data.image[0];
 
     // Announce to screen readers that classification is starting
     const announcement = document.getElementById('classification-announcement');
@@ -38,24 +73,22 @@ export default function Classify() {
     }
 
     try {
-      // Example API call with error handling
-      const response = await api.post('/api/classify', {
-        image: image
-      }, {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await api.post('/api/classify', formData, {
         retries: 2,
-        retryDelay: 1000
+        retryDelay: 1000,
       });
 
       if (response.error) {
-        setError(response.error);
+        setApiError(response.error);
       } else if (response.data) {
         setClassification(response.data);
       }
     } catch (err) {
-      setError(t('error_classify_retry'));
+      setApiError(t('error_classify_retry'));
       console.error('Classification error:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -82,74 +115,79 @@ export default function Classify() {
         className="sr-only"
       />
 
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        ref={fileInputRef}
-        onChange={handleImageChange}
-        className="hidden"
-        aria-label={t("select_image_file")}
-      />
-
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        onKeyPress={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            fileInputRef.current?.click();
-          }
-        }}
-        className="bg-accent text-white px-6 py-3 rounded-full mb-4 focus:outline-none focus:ring-4 focus:ring-accent/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-        aria-label={t("open_camera")}
-      >
-        {t("open_camera")}
-      </button>
-
-      {error && (
-        <ErrorMessage
-          message={error}
-          onRetry={() => handleClassify()}
-          onDismiss={() => setError(null)}
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col items-center w-full max-w-md">
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          {...registerRest}
+          ref={(e) => {
+            registerRef(e);
+            hiddenInputRef.current = e;
+          }}
+          aria-label={t("select_image_file")}
         />
-      )}
 
-      {image && (
-        <div className="mt-6 text-center" role="region" aria-label={t("image_preview")}>
-          <img
-            src={image}
-            alt={t("preview_alt")}
-            className="rounded-xl shadow-md max-w-sm mx-auto mb-4"
-          />
+        <button
+          type="button"
+          onClick={() => hiddenInputRef.current?.click()}
+          className="bg-accent text-white px-6 py-3 rounded-full mb-4 focus:outline-none focus:ring-4 focus:ring-accent/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+          aria-label={t("open_camera")}
+        >
+          {t("open_camera")}
+        </button>
 
-          <button
-            onClick={handleClassify}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleClassify();
-              }
-            }}
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-blue-600/50 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-            aria-label={loading ? t('classifying') : t('classify_food')}
-            aria-describedby={loading ? 'classification-announcement' : undefined}
-          >
-            {loading ? t('classifying') : t('classify_food')}
-          </button>
+        {errors.image && (
+          <div className="mb-4 w-full">
+            <ErrorMessage
+              message={errors.image.message as string}
+              onDismiss={() => reset({ image: undefined })}
+            />
+          </div>
+        )}
 
-          {classification && (
-            <div
-              className="mt-6 p-4 bg-green-50 rounded-lg max-w-sm mx-auto"
-              role="region"
-              aria-label={t('classification_result')}
+        {apiError && (
+          <div className="mb-4 w-full">
+            <ErrorMessage
+              message={apiError}
+              onRetry={handleSubmit(onSubmit)}
+              onDismiss={() => setApiError(null)}
+            />
+          </div>
+        )}
+
+        {preview && !errors.image && (
+          <div className="mt-6 text-center w-full" role="region" aria-label={t("image_preview")}>
+            <img
+              src={preview}
+              alt={t("preview_alt")}
+              className="rounded-xl shadow-md max-w-sm mx-auto mb-4"
+            />
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-blue-600/50 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              aria-label={isSubmitting ? t('classifying') : t('classify_food')}
+              aria-describedby={isSubmitting ? 'classification-announcement' : undefined}
             >
-              <h3 className="font-semibold text-green-800 mb-2">{t('classification_result')}:</h3>
-              <p className="text-green-700">{JSON.stringify(classification, null, 2)}</p>
-            </div>
-          )}
-        </div>
-      )}
+              {isSubmitting ? t('classifying') : t('classify_food')}
+            </button>
+
+            {classification && (
+              <div
+                className="mt-6 p-4 bg-green-50 rounded-lg max-w-sm mx-auto"
+                role="region"
+                aria-label={t('classification_result')}
+              >
+                <h3 className="font-semibold text-green-800 mb-2">{t('classification_result')}:</h3>
+                <p className="text-green-700">{JSON.stringify(classification, null, 2)}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </form>
     </div>
   );
 }
