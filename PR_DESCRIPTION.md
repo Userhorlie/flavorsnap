@@ -1,51 +1,31 @@
-# Fix #36: Implement Unit and Integration Tests
+# Fix #41: Missing CORS Configuration
 
 ## Summary
-This PR addresses the "Missing Unit Tests" issue by setting up the testing environment with Jest and React Testing Library, and adding comprehensive unit and integration tests for core components and utilities.
+This PR addresses the "Missing CORS Configuration" issue in the Backend API. It configures `flask-cors` to allow cross-origin requests from the frontend application, enabling direct communication between the browser and the ML inference API.
 
 ## Changes Made
 
-### ✅ Testing Infrastructure
-- **Location**: `frontend/jest.config.js`, `frontend/jest.setup.js`
-- **Tech Stack**: `jest`, `@testing-library/react`, `@testing-library/jest-dom`
+### ✅ Backend API
+- **Location**: `ml-model-api/app.py`
+- **Tech Stack**: `flask`, `flask-cors`
 - **Features**:
-  - Configured Jest for Next.js environment
-  - Added DOM matchers setup
-  - Configured path aliases mapping
+  - Initialized `CORS` extension with the Flask app
+  - Configured allowed origins (defaulting to `http://localhost:3000`)
+  - Added environment variable support for `FRONTEND_URL`
 
-### ✅ Component Tests
-- **Location**: `frontend/__tests__/components/ErrorMessage.test.tsx`
-- **Coverage**:
-  - Rendering of all variants (inline, modal, toast)
-  - Interaction testing (retry, dismiss callbacks)
-  - Accessibility checks (aria-labels)
-
-### ✅ Utility Tests
-- **Location**: `frontend/__tests__/utils/api.test.ts`
-- **Coverage**:
-  - HTTP methods (GET, POST)
-  - Error handling and custom ApiError class
-  - Retry logic and FormData handling
-
-### ✅ Integration Tests
-- **Location**: `frontend/__tests__/pages/index.test.tsx`
-- **Coverage**:
-  - Full user flow: File selection -> Preview -> Classification -> Result
-  - Form validation (file type/size)
-  - Loading states and error feedback
-  - Mocking of external dependencies (React Query, i18n)
+### ✅ Dependencies
+- **Location**: `ml-model-api/requirements.txt`
+- **Changes**: Added `flask-cors` to the project dependencies.
 
 ## Technical Implementation Details
 
-### Jest Configuration
-```javascript
-const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testEnvironment: 'jest-environment-jsdom',
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
-  },
-}
+### CORS Setup
+```python
+from flask_cors import CORS
+app = Flask(__name__)
+
+# Allow requests from frontend
+CORS(app, origins=[os.environ.get("FRONTEND_URL", "http://localhost:3000")])
 ```
 
 ### Error Display Components
