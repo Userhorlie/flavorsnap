@@ -1,43 +1,150 @@
 import os
+import uuid
+import logging
+from functools import wraps
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_jwt_extended import (
+    JWTManager, create_access_token, jwt_required, 
+    get_jwt_identity, verify_jwt_in_request
+)
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Fix #41: Configure CORS
-# Allow requests from frontend (default localhost:3000)
-CORS(app, origins=[os.environ.get("FRONTEND_URL", "http://localhost:3000")])
+# Configuration
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-jwt-secret')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-@app.route('/health', methods=['GET'])
-def health():
+# Initialize Extensions
+CORS(app, origins=[os.environ.get("FRONTEND_URL", "http://localhost:3000")])
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
+
+# --- Models ---
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    role = db.Column(db.String(20), default='user') # user, admin
+    api_key = db.Column(db.String(64), unique=True, nullable=True)
+
+    def set_password(self, password):
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def check_password(self, password):
+        return bcrypt.check_password_hash(self.password_hash, password)
+
+    def generate_api_key(self):
+        self.api_key = str(uuid.uuid4())
+
+# --- Decorators ---
+def api_key_or_jwt_required(fn):
+    @wraps(fn)
+    def decorator(*args, **kwargs):
+        # 1. Check API Key
+        api_key = request.headers.get('X-API-KEY')
+        if api_key:
+            user = User.query.filter_by(api_key=api_key).first()
+            if user:
+                return fn(*args, **kwargs)
+        
+        # 2. Check JWT
+        try:
+            verify_jwt_in_request()
+            return fn(*args, **kwargs)
+        except:
+            return jsonify({"error": "Authentication required (API Key or JWT)"}), 401
+    return decorator
+
+def role_required(role):
+    def wrapper(fn):
+        @wraps(fn)
+        @jwt_required()
+        def decorator(*args, **kwargs):
+            user_id = get_jwt_identity()
+            user = User.query.get(user_id)
+            if not user or (user.role != role and user.role != 'admin'):
+                return jsonify({"error": "Insufficient permissions"}), 403
+            return fn(*args, **kwargs)
+        return decorator
+    return wrapper
+
+# --- Routes ---
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({"error": "Username and password required"}), 400
+    
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({"error": "Username already exists"}), 400
+    
+    user = User(username=data['username'], role=data.get('role', 'user'))
+    user.set_password(data['password'])
+    user.generate_api_key()
+    
+    db.session.add(user)
+    db.session.commit()
+    
     return jsonify({
-        "status": "healthy",
-        "model_loaded": True,
-        "version": "1.0.0"
-    })
+        "message": "User registered successfully",
+        "api_key": user.api_key
+    }), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    user = User.query.filter_by(username=data.get('username')).first()
+    
+    if user and user.check_password(data.get('password')):
+        token = create_access_token(identity=user.id)
+        return jsonify({
+            "access_token": token,
+            "api_key": user.api_key,
+            "role": user.role
+        }), 200
+    
+    return jsonify({"error": "Invalid credentials"}), 401
 
 @app.route('/predict', methods=['POST'])
+@api_key_or_jwt_required
 def predict():
     if 'image' not in request.files:
         return jsonify({"error": "No image provided"}), 400
     
-    # Placeholder for model inference
+    # Mock response preserving existing API contract
     return jsonify({
         "label": "Moi Moi",
-        "confidence": 0.85,
+        "confidence": 85.7,
         "all_predictions": [
-            { "label": "Moi Moi", "confidence": 0.85 },
-            { "label": "Akara", "confidence": 0.10 }
-        ]
+            { "label": "Moi Moi", "confidence": 85.7 },
+            { "label": "Akara", "confidence": 9.2 },
+            { "label": "Bread", "confidence": 3.1 }
+        ],
+        "processing_time": 0.234
     })
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "healthy", "auth_enabled": True, "version": "1.1.0"})
+
 @app.route('/classes', methods=['GET'])
-def classes():
-    classes_list = ["Akara", "Bread", "Egusi", "Moi Moi", "Rice and Stew", "Yam"]
+def get_classes():
     return jsonify({
-        "classes": classes_list,
-        "count": len(classes_list)
+        "classes": ["Akara", "Bread", "Egusi", "Moi Moi", "Rice and Stew", "Yam"],
+        "count": 6
     })
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(host='0.0.0.0', port=5000)
