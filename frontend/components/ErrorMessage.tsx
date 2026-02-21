@@ -17,7 +17,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
     return (
       <div className="fixed bottom-4 right-4 max-w-sm bg-red-50 border border-red-200 rounded-lg shadow-lg p-4 z-50">
         <div className="flex items-start">
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <svg
               className="h-5 w-5 text-red-400"
               viewBox="0 0 20 20"
@@ -39,6 +39,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
                 <button
                   onClick={onDismiss}
                   className="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  aria-label="Dismiss error message"
                 >
                   <span className="sr-only">Dismiss</span>
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -57,7 +58,8 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           <div className="mt-3 flex">
             <button
               onClick={onRetry}
-              className="text-sm text-red-800 underline hover:text-red-900"
+              className="text-sm text-red-800 underline hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              aria-label="Retry the last action"
             >
               Try Again
             </button>
@@ -73,7 +75,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
         <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
           <div className="p-6">
             <div className="flex items-center mb-4">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <svg
                   className="h-6 w-6 text-red-400"
                   fill="none"
@@ -97,7 +99,8 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
               {onRetry && (
                 <button
                   onClick={onRetry}
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  aria-label="Retry the last action"
                 >
                   Try Again
                 </button>
@@ -105,7 +108,8 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
               {onDismiss && (
                 <button
                   onClick={onDismiss}
-                  className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  aria-label="Close error dialog"
                 >
                   Close
                 </button>
@@ -141,7 +145,8 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           <div className="ml-auto pl-3">
             <button
               onClick={onDismiss}
-              className="inline-flex text-red-400 hover:text-red-600 focus:outline-none"
+              className="inline-flex text-red-400 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              aria-label="Dismiss error message"
             >
               <span className="sr-only">Dismiss</span>
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -159,7 +164,8 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
         <div className="mt-3">
           <button
             onClick={onRetry}
-            className="text-sm text-red-800 underline hover:text-red-900 font-medium"
+            className="text-sm text-red-800 underline hover:text-red-900 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            aria-label="Retry the last action"
           >
             Try Again
           </button>

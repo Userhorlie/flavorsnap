@@ -31,6 +31,12 @@ export default function Classify() {
     setLoading(true);
     setError(null);
 
+    // Announce to screen readers that classification is starting
+    const announcement = document.getElementById('classification-announcement');
+    if (announcement) {
+      announcement.textContent = t('classifying');
+    }
+
     try {
       // Example API call with error handling
       const response = await api.post('/api/classify', {
@@ -59,7 +65,22 @@ export default function Classify() {
         <LanguageSwitcher />
       </div>
 
-      <h2 className="text-3xl font-bold mb-6">{t("snap_your_food")} 🍛</h2>
+      <h1 className="text-3xl font-bold mb-6">{t("snap_your_food")} 🍛</h1>
+
+      {/* Screen reader announcements */}
+      <div
+        id="classification-announcement"
+        role="status"
+        aria-live="polite"
+        className="sr-only"
+      />
+
+      <div
+        id="error-announcement"
+        role="alert"
+        aria-live="assertive"
+        className="sr-only"
+      />
 
       <input
         type="file"
@@ -68,11 +89,19 @@ export default function Classify() {
         ref={fileInputRef}
         onChange={handleImageChange}
         className="hidden"
+        aria-label={t("select_image_file")}
       />
 
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="bg-accent text-white px-6 py-3 rounded-full mb-4"
+        onKeyPress={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
+        className="bg-accent text-white px-6 py-3 rounded-full mb-4 focus:outline-none focus:ring-4 focus:ring-accent/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+        aria-label={t("open_camera")}
       >
         {t("open_camera")}
       </button>
@@ -86,7 +115,7 @@ export default function Classify() {
       )}
 
       {image && (
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center" role="region" aria-label={t("image_preview")}>
           <img
             src={image}
             alt={t("preview_alt")}
@@ -95,14 +124,26 @@ export default function Classify() {
 
           <button
             onClick={handleClassify}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleClassify();
+              }
+            }}
             disabled={loading}
-            className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-blue-600/50 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            aria-label={loading ? t('classifying') : t('classify_food')}
+            aria-describedby={loading ? 'classification-announcement' : undefined}
           >
             {loading ? t('classifying') : t('classify_food')}
           </button>
 
           {classification && (
-            <div className="mt-6 p-4 bg-green-50 rounded-lg max-w-sm mx-auto">
+            <div
+              className="mt-6 p-4 bg-green-50 rounded-lg max-w-sm mx-auto"
+              role="region"
+              aria-label={t('classification_result')}
+            >
               <h3 className="font-semibold text-green-800 mb-2">{t('classification_result')}:</h3>
               <p className="text-green-700">{JSON.stringify(classification, null, 2)}</p>
             </div>

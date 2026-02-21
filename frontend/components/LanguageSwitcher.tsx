@@ -27,7 +27,8 @@ export default function LanguageSwitcher() {
         id="language-switcher"
         value={locale}
         onChange={handleChange}
-        className=" bg-black text-foreground border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+        className=" bg-black text-foreground border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
+        aria-label={t("select_language")}
       >
         {locales?.map((loc) => (
           <option className="bg-black" key={loc} value={loc}>
