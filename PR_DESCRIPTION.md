@@ -1,45 +1,51 @@
-# Fix #35: Implement Caching Strategy
+# Fix #36: Implement Unit and Integration Tests
 
 ## Summary
-This PR addresses the "No Caching Strategy" issue by implementing React Query for efficient API state management and caching, and verifying the Service Worker configuration for offline support and static asset caching.
+This PR addresses the "Missing Unit Tests" issue by setting up the testing environment with Jest and React Testing Library, and adding comprehensive unit and integration tests for core components and utilities.
 
 ## Changes Made
 
-### ✅ React Query Integration
-- **Location**: `frontend/pages/_app.tsx`, `frontend/pages/index.tsx`
-- **Tech Stack**: `@tanstack/react-query`
+### ✅ Testing Infrastructure
+- **Location**: `frontend/jest.config.js`, `frontend/jest.setup.js`
+- **Tech Stack**: `jest`, `@testing-library/react`, `@testing-library/jest-dom`
 - **Features**:
-  - Wrapped application in `QueryClientProvider`
-  - Refactored classification logic to use `useMutation` hook
-  - Centralized loading and error states via React Query
+  - Configured Jest for Next.js environment
+  - Added DOM matchers setup
+  - Configured path aliases mapping
 
-### ✅ Service Worker & Caching
-- **Location**: `frontend/next.config.ts` (Verified)
-- **Features**:
-  - Confirmed `next-pwa` configuration
-  - Runtime caching strategies for API routes (NetworkFirst) and static assets (CacheFirst)
-  - Offline fallback support
+### ✅ Component Tests
+- **Location**: `frontend/__tests__/components/ErrorMessage.test.tsx`
+- **Coverage**:
+  - Rendering of all variants (inline, modal, toast)
+  - Interaction testing (retry, dismiss callbacks)
+  - Accessibility checks (aria-labels)
+
+### ✅ Utility Tests
+- **Location**: `frontend/__tests__/utils/api.test.ts`
+- **Coverage**:
+  - HTTP methods (GET, POST)
+  - Error handling and custom ApiError class
+  - Retry logic and FormData handling
+
+### ✅ Integration Tests
+- **Location**: `frontend/__tests__/pages/index.test.tsx`
+- **Coverage**:
+  - Full user flow: File selection -> Preview -> Classification -> Result
+  - Form validation (file type/size)
+  - Loading states and error feedback
+  - Mocking of external dependencies (React Query, i18n)
 
 ## Technical Implementation Details
 
-### React Query Setup
-```typescript
-const [queryClient] = useState(() => new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000,
-      refetchOnWindowFocus: false,
-    },
+### Jest Configuration
+```javascript
+const customJestConfig = {
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  testEnvironment: 'jest-environment-jsdom',
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
   },
-}));
-```
-
-### API Error Handling with Retry
-```typescript
-const response = await api.post('/api/classify', data, {
-  retries: 2,
-  retryDelay: 1000
-});
+}
 ```
 
 ### Error Display Components
