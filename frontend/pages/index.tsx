@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useState, useEffect } from "react";
+import Head from "next/head";
 import { api } from "@/utils/api";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { useTranslation } from "next-i18next";
@@ -94,6 +95,46 @@ export default function Classify() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
+      <Head>
+        <title>{t("app_title", "FlavorSnap - AI Food Classification")}</title>
+        <meta name="description" content={t("app_description", "Snap a picture of your food and let AI identify the dish instantly! Specialized in Nigerian cuisine.")} />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+
+        {/* Open Graph */}
+        <meta property="og:title" content="FlavorSnap - AI Food Classification" />
+        <meta property="og:description" content="Snap a picture of your food and let AI identify the dish instantly!" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://flavorsnap.vercel.app" />
+        <meta property="og:image" content="https://flavorsnap.vercel.app/icons/icon-512x512.png" />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="FlavorSnap" />
+        <meta name="twitter:description" content="AI-powered food recognition." />
+        <meta name="twitter:image" content="https://flavorsnap.vercel.app/icons/icon-512x512.png" />
+
+        {/* Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "FlavorSnap",
+              "applicationCategory": "LifestyleApplication",
+              "operatingSystem": "Any",
+              "description": "AI-powered food recognition and calorie tracking application specialized in Nigerian cuisine.",
+              "image": "https://flavorsnap.vercel.app/icons/icon-512x512.png",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+              }
+            })
+          }}
+        />
+      </Head>
       <div className="absolute top-4 end-4">
         <LanguageSwitcher />
       </div>
