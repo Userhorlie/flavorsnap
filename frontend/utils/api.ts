@@ -13,24 +13,20 @@ class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public data?: any
+    public data?: any,
   ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
   }
 }
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const apiRequest = async <T = any>(
   url: string,
-  options: ApiOptions = {}
+  options: ApiOptions = {},
 ): Promise<ApiResponse<T>> => {
-  const {
-    retries = 3,
-    retryDelay = 1000,
-    ...fetchOptions
-  } = options;
+  const { retries = 3, retryDelay = 1000, ...fetchOptions } = options;
 
   let lastError: Error | null = null;
 
@@ -38,7 +34,7 @@ const apiRequest = async <T = any>(
     try {
       const response = await fetch(url, {
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...fetchOptions.headers,
         },
         ...fetchOptions,
@@ -47,7 +43,8 @@ const apiRequest = async <T = any>(
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const errorMessage = data?.error || data?.message || `HTTP ${response.status}`;
+        const errorMessage =
+          data?.error || data?.message || `HTTP ${response.status}`;
         throw new ApiError(errorMessage, response.status, data);
       }
 
@@ -56,10 +53,16 @@ const apiRequest = async <T = any>(
         status: response.status,
       };
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error occurred');
+      lastError =
+        error instanceof Error ? error : new Error("Unknown error occurred");
 
       // Don't retry on client errors (4xx) except for 429 (rate limit)
-      if (lastError instanceof ApiError && lastError.status >= 400 && lastError.status < 500 && lastError.status !== 429) {
+      if (
+        lastError instanceof ApiError &&
+        lastError.status >= 400 &&
+        lastError.status < 500 &&
+        lastError.status !== 429
+      ) {
         break;
       }
 
@@ -71,7 +74,7 @@ const apiRequest = async <T = any>(
   }
 
   return {
-    error: lastError?.message || 'Request failed',
+    error: lastError?.message || "Request failed",
     status: lastError instanceof ApiError ? lastError.status : 500,
   };
 };
@@ -79,24 +82,25 @@ const apiRequest = async <T = any>(
 // API methods with error handling
 export const api = {
   get: <T = any>(url: string, options?: ApiOptions) =>
-    apiRequest<T>(url, { method: 'GET', ...options }),
+    apiRequest<T>(url, { method: "GET", ...options }),
 
   post: <T = any>(url: string, data?: any, options?: ApiOptions) =>
     apiRequest<T>(url, {
-      method: 'POST',
+      method: "POST",
       body: data ? JSON.stringify(data) : undefined,
       ...options,
     }),
 
   put: <T = any>(url: string, data?: any, options?: ApiOptions) =>
     apiRequest<T>(url, {
-      method: 'PUT',
+      method: "PUT",
       body: data ? JSON.stringify(data) : undefined,
       ...options,
     }),
 
   delete: <T = any>(url: string, options?: ApiOptions) =>
-    apiRequest<T>(url, { method: 'DELETE', ...options }),
+    apiRequest<T>(url, { method: "DELETE", ...options }),
 };
 
-export { ApiError, ApiResponse };
+export { ApiError };
+export type { ApiResponse };
