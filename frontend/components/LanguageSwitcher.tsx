@@ -1,11 +1,11 @@
-import { useRouter } from "next/router";
+﻿import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next";
 
 const localeLabels: Record<string, string> = {
   en: "English",
-  fr: "Français",
-  ar: "العربية",
-  yo: "Yorùbá",
+  fr: "Francais",
+  ar: "Arabic",
+  yo: "Yoruba",
 };
 
 export default function LanguageSwitcher() {
@@ -19,15 +19,15 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <label htmlFor="language-switcher" className="text-sm font-medium">
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <label htmlFor="language-switcher" className="text-sm font-medium sm:text-base">
         {t("select_language")}
       </label>
       <select
         id="language-switcher"
         value={locale}
         onChange={handleChange}
-        className=" bg-black text-foreground border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
+        className="min-h-[44px] w-full rounded-md border border-gray-300 bg-black px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer sm:w-auto sm:min-w-[11rem] sm:text-base"
         aria-label={t("select_language")}
       >
         {locales?.map((loc) => (

@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+﻿import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -27,13 +27,9 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo
     });
 
-    // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
-
-    // TODO: Add error logging service integration
-    // logErrorToService(error, errorInfo);
   }
 
   handleRetry = () => {
@@ -47,12 +43,12 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+        <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+          <div className="mx-auto w-full max-w-md rounded-lg bg-white p-6 text-center shadow-lg sm:p-8">
             <div className="mb-4">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
                 <svg
-                  className="w-8 h-8 text-red-600"
+                  className="h-8 w-8 text-red-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -65,10 +61,8 @@ export class ErrorBoundary extends Component<Props, State> {
                   />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Something went wrong
-              </h2>
-              <p className="text-gray-600 mb-6">
+              <h2 className="mb-2 text-2xl font-bold text-gray-900">Something went wrong</h2>
+              <p className="mb-6 text-gray-600">
                 We&apos;re sorry, but something unexpected happened. The error has been logged and we&apos;ll look into it.
               </p>
             </div>
@@ -76,13 +70,13 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="space-y-3">
               <button
                 onClick={this.handleRetry}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="min-h-[44px] w-full rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
               >
                 Try Again
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                className="min-h-[44px] w-full rounded-lg bg-gray-200 px-4 py-2 text-gray-800 transition-colors hover:bg-gray-300"
               >
                 Reload Page
               </button>
@@ -90,11 +84,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="mt-6 text-left">
-                <summary className="cursor-pointer text-sm font-medium text-gray-700 mb-2">
+                <summary className="mb-2 cursor-pointer text-sm font-medium text-gray-700">
                   Error Details (Development Only)
                 </summary>
-                <div className="bg-gray-100 p-3 rounded text-xs font-mono overflow-auto max-h-40">
-                  <div className="text-red-600 font-bold mb-2">
+                <div className="max-h-40 overflow-auto rounded bg-gray-100 p-3 font-mono text-xs">
+                  <div className="mb-2 font-bold text-red-600">
                     {this.state.error.toString()}
                   </div>
                   {this.state.errorInfo && (

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useState, useEffect } from "react";
 import Head from "next/head";
 import { api } from "@/utils/api";
@@ -14,12 +14,14 @@ import * as z from "zod";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const MAX_MOBILE_DIMENSION = 1280;
+const MOBILE_IMAGE_QUALITY = 0.82;
 
 const validationSchema = z.object({
   image: z
     .any()
     .refine((files) => files?.length === 1, "Image is required.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 10MB.`)
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, "Max file size is 10MB.")
     .refine(
       (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
       "Only .jpg, .jpeg, .png and .webp formats are supported."
@@ -27,6 +29,39 @@ const validationSchema = z.object({
 });
 
 type FormValues = z.infer<typeof validationSchema>;
+
+async function optimizeImageForUpload(file: File): Promise<File> {
+  try {
+    if (!file.type.startsWith("image/")) return file;
+    if (file.size <= 2 * 1024 * 1024) return file;
+
+    const bitmap = await createImageBitmap(file);
+    const largestSide = Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, MAX_MOBILE_DIMENSION / largestSide);
+
+    if (scale === 1) return file;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/webp", MOBILE_IMAGE_QUALITY)
+    );
+
+    if (!blob) return file;
+
+    const safeName = file.name.replace(/\.[^/.]+$/, "");
+    return new File([blob], `${safeName}.webp`, { type: "image/webp" });
+  } catch {
+    return file;
+  }
+}
 
 export default function Classify() {
   const { t } = useTranslation("common");
@@ -66,7 +101,7 @@ export default function Classify() {
 
   const mutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await api.post('/api/classify', formData, {
+      const response = await api.post("/api/classify", formData, {
         retries: 2,
         retryDelay: 1000,
       });
@@ -84,159 +119,176 @@ export default function Classify() {
     },
   });
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     setApiError(null);
     setClassification(null);
-    const file = data.image[0];
 
-    // Announce to screen readers that classification is starting
-    const announcement = document.getElementById('classification-announcement');
+    const file = data.image[0];
+    const optimizedFile = await optimizeImageForUpload(file);
+
+    const announcement = document.getElementById("classification-announcement");
     if (announcement) {
-      announcement.textContent = t('classifying');
+      announcement.textContent = t("classifying");
     }
 
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("image", optimizedFile, optimizedFile.name);
 
     mutation.mutate(formData);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen px-4 py-6 sm:px-6 md:px-8 lg:px-10 xl:px-12">
       <Head>
         <title>{t("app_title", "FlavorSnap - AI Food Classification")}</title>
-        <meta name="description" content={t("app_description", "Snap a picture of your food and let AI identify the dish instantly! Specialized in Nigerian cuisine.")} />
+        <meta
+          name="description"
+          content={t(
+            "app_description",
+            "Snap a picture of your food and let AI identify the dish instantly! Specialized in Nigerian cuisine."
+          )}
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
 
-        {/* Open Graph */}
         <meta property="og:title" content="FlavorSnap - AI Food Classification" />
-        <meta property="og:description" content="Snap a picture of your food and let AI identify the dish instantly!" />
+        <meta
+          property="og:description"
+          content="Snap a picture of your food and let AI identify the dish instantly!"
+        />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://flavorsnap.vercel.app" />
-        <meta property="og:image" content="https://flavorsnap.vercel.app/icons/icon-512x512.png" />
+        <meta
+          property="og:image"
+          content="https://flavorsnap.vercel.app/icons/icon-512x512.png"
+        />
 
-        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="FlavorSnap" />
         <meta name="twitter:description" content="AI-powered food recognition." />
-        <meta name="twitter:image" content="https://flavorsnap.vercel.app/icons/icon-512x512.png" />
+        <meta
+          name="twitter:image"
+          content="https://flavorsnap.vercel.app/icons/icon-512x512.png"
+        />
 
-        {/* Structured Data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebApplication",
-              "name": "FlavorSnap",
-              "applicationCategory": "LifestyleApplication",
-              "operatingSystem": "Any",
-              "description": "AI-powered food recognition and calorie tracking application specialized in Nigerian cuisine.",
-              "image": "https://flavorsnap.vercel.app/icons/icon-512x512.png",
-              "offers": {
+              name: "FlavorSnap",
+              applicationCategory: "LifestyleApplication",
+              operatingSystem: "Any",
+              description:
+                "AI-powered food recognition and calorie tracking application specialized in Nigerian cuisine.",
+              image: "https://flavorsnap.vercel.app/icons/icon-512x512.png",
+              offers: {
                 "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-              }
-            })
+                price: "0",
+                priceCurrency: "USD",
+              },
+            }),
           }}
         />
       </Head>
-      <div className="absolute top-4 end-4">
-        <LanguageSwitcher />
-      </div>
 
-      <h1 className="text-3xl font-bold mb-6">{t("snap_your_food")} 🍛</h1>
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="mb-5 flex justify-end sm:mb-8">
+          <LanguageSwitcher />
+        </div>
 
-      {/* Screen reader announcements */}
-      <div
-        id="classification-announcement"
-        role="status"
-        aria-live="polite"
-        className="sr-only"
-      />
+        <h1 className="mb-5 text-center text-2xl font-bold sm:text-3xl md:text-4xl">
+          {t("snap_your_food")}
+        </h1>
 
-      <div
-        id="error-announcement"
-        role="alert"
-        aria-live="assertive"
-        className="sr-only"
-      />
+        <div id="classification-announcement" role="status" aria-live="polite" className="sr-only" />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col items-center w-full max-w-md">
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          {...registerRest}
-          ref={(e) => {
-            registerRef(e);
-            hiddenInputRef.current = e;
-          }}
-          aria-label={t("select_image_file")}
-        />
+        <div id="error-announcement" role="alert" aria-live="assertive" className="sr-only" />
 
-        <button
-          type="button"
-          onClick={() => hiddenInputRef.current?.click()}
-          className="bg-accent text-white px-6 py-3 rounded-full mb-4 focus:outline-none focus:ring-4 focus:ring-accent/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-          aria-label={t("open_camera")}
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="mx-auto flex w-full max-w-md flex-col items-center"
         >
-          {t("open_camera")}
-        </button>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            {...registerRest}
+            ref={(e) => {
+              registerRef(e);
+              hiddenInputRef.current = e;
+            }}
+            aria-label={t("select_image_file")}
+          />
 
-        {errors.image && (
-          <div className="mb-4 w-full">
-            <ErrorMessage
-              message={errors.image.message as string}
-              onDismiss={() => reset({ image: undefined })}
-            />
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => hiddenInputRef.current?.click()}
+            className="mb-4 min-h-[44px] w-full rounded-full bg-accent px-6 py-3 text-white focus:outline-none focus:ring-4 focus:ring-accent/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 sm:w-auto"
+            aria-label={t("open_camera")}
+          >
+            {t("open_camera")}
+          </button>
 
-        {apiError && (
-          <div className="mb-4 w-full">
-            <ErrorMessage
-              message={apiError}
-              onRetry={handleSubmit(onSubmit)}
-              onDismiss={() => setApiError(null)}
-            />
-          </div>
-        )}
+          {errors.image && (
+            <div className="mb-4 w-full">
+              <ErrorMessage
+                message={errors.image.message as string}
+                onDismiss={() => reset({ image: undefined })}
+              />
+            </div>
+          )}
 
-        {preview && !errors.image && (
-          <div className="mt-6 text-center w-full" role="region" aria-label={t("image_preview")}>
-            <img
-              src={preview}
-              alt={t("preview_alt")}
-              className="rounded-xl shadow-md max-w-sm mx-auto mb-4"
-            />
+          {apiError && (
+            <div className="mb-4 w-full">
+              <ErrorMessage
+                message={apiError}
+                onRetry={handleSubmit(onSubmit)}
+                onDismiss={() => setApiError(null)}
+              />
+            </div>
+          )}
 
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-blue-600/50 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-              aria-label={mutation.isPending ? t('classifying') : t('classify_food')}
-              aria-describedby={mutation.isPending ? 'classification-announcement' : undefined}
-            >
-              {mutation.isPending ? t('classifying') : t('classify_food')}
-            </button>
+          {preview && !errors.image && (
+            <div className="mt-6 w-full text-center" role="region" aria-label={t("image_preview")}>
+              <img
+                src={preview}
+                alt={t("preview_alt")}
+                className="mx-auto mb-4 aspect-[4/3] w-full max-w-[280px] rounded-xl object-cover shadow-md sm:max-w-xs md:max-w-sm lg:max-w-md"
+                loading="lazy"
+                decoding="async"
+              />
 
-            {classification && (
-              <div
-                className="mt-6 p-4 bg-green-50 rounded-lg max-w-sm mx-auto"
-                role="region"
-                aria-label={t('classification_result')}
+              <button
+                type="submit"
+                disabled={mutation.isPending}
+                className="min-h-[44px] w-full rounded-full bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-600/50 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:w-auto"
+                aria-label={mutation.isPending ? t("classifying") : t("classify_food")}
+                aria-describedby={mutation.isPending ? "classification-announcement" : undefined}
               >
-                <h3 className="font-semibold text-green-800 mb-2">{t('classification_result')}:</h3>
-                <p className="text-green-700">{JSON.stringify(classification, null, 2)}</p>
-              </div>
-            )}
-          </div>
-        )}
-      </form>
+                {mutation.isPending ? t("classifying") : t("classify_food")}
+              </button>
+
+              {classification && (
+                <div
+                  className="mx-auto mt-6 w-full max-w-sm rounded-lg bg-green-50 p-4 text-left"
+                  role="region"
+                  aria-label={t("classification_result")}
+                >
+                  <h3 className="mb-2 font-semibold text-green-800">
+                    {t("classification_result")}:
+                  </h3>
+                  <p className="break-words text-green-700">
+                    {JSON.stringify(classification, null, 2)}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 interface ErrorMessageProps {
   message: string;
@@ -15,7 +15,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
 }) => {
   if (variant === 'toast') {
     return (
-      <div className="fixed bottom-4 right-4 max-w-sm bg-red-50 border border-red-200 rounded-lg shadow-lg p-4 z-50">
+      <div className="fixed inset-x-4 bottom-4 z-50 max-w-sm rounded-lg border border-red-200 bg-red-50 p-4 shadow-lg sm:inset-x-auto sm:right-4">
         <div className="flex items-start">
           <div className="shrink-0">
             <svg
@@ -38,7 +38,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
               {onDismiss && (
                 <button
                   onClick={onDismiss}
-                  className="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   aria-label="Dismiss error message"
                 >
                   <span className="sr-only">Dismiss</span>
@@ -58,7 +58,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           <div className="mt-3 flex">
             <button
               onClick={onRetry}
-              className="text-sm text-red-800 underline hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="min-h-[44px] text-sm text-red-800 underline hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               aria-label="Retry the last action"
             >
               Try Again
@@ -71,10 +71,10 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
 
   if (variant === 'modal') {
     return (
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-500 bg-opacity-75 p-4">
+        <div className="mx-0 w-full max-w-md rounded-lg bg-white shadow-xl">
           <div className="p-6">
-            <div className="flex items-center mb-4">
+            <div className="mb-4 flex items-center">
               <div className="shrink-0">
                 <svg
                   className="h-6 w-6 text-red-400"
@@ -90,16 +90,14 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
                   />
                 </svg>
               </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">
-                Error
-              </h3>
+              <h3 className="ml-3 text-lg font-medium text-gray-900">Error</h3>
             </div>
-            <p className="text-gray-600 mb-6">{message}</p>
-            <div className="flex space-x-3">
+            <p className="mb-6 text-gray-600">{message}</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
               {onRetry && (
                 <button
                   onClick={onRetry}
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="min-h-[44px] flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   aria-label="Retry the last action"
                 >
                   Try Again
@@ -108,7 +106,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
               {onDismiss && (
                 <button
                   onClick={onDismiss}
-                  className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  className="min-h-[44px] flex-1 rounded-lg bg-gray-200 px-4 py-2 text-gray-800 transition-colors hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                   aria-label="Close error dialog"
                 >
                   Close
@@ -121,9 +119,8 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
     );
   }
 
-  // Default inline variant
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
       <div className="flex items-start">
         <div className="flex-shrink-0">
           <svg
@@ -145,7 +142,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           <div className="ml-auto pl-3">
             <button
               onClick={onDismiss}
-              className="inline-flex text-red-400 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-red-400 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               aria-label="Dismiss error message"
             >
               <span className="sr-only">Dismiss</span>
@@ -164,7 +161,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
         <div className="mt-3">
           <button
             onClick={onRetry}
-            className="text-sm text-red-800 underline hover:text-red-900 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className="min-h-[44px] text-sm font-medium text-red-800 underline hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             aria-label="Retry the last action"
           >
             Try Again
