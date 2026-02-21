@@ -1,42 +1,37 @@
-# Fix #32: Implement SEO Optimization
+# Fix #35: Implement Caching Strategy
 
 ## Summary
-This PR addresses the "Missing SEO Optimization" issue by implementing comprehensive SEO meta tags, structured data (JSON-LD), and dynamic sitemap generation. These changes improve search engine visibility and social media sharing previews.
+This PR addresses the "No Caching Strategy" issue by implementing React Query for efficient API state management and caching, and verifying the Service Worker configuration for offline support and static asset caching.
 
 ## Changes Made
 
-### ✅ Meta Tags & Open Graph
-- **Location**: `frontend/pages/index.tsx`
-- **Tech Stack**: `next/head`
+### ✅ React Query Integration
+- **Location**: `frontend/pages/_app.tsx`, `frontend/pages/index.tsx`
+- **Tech Stack**: `@tanstack/react-query`
 - **Features**:
-  - Added Title and Description tags
-  - Implemented Open Graph (OG) tags for Facebook/LinkedIn
-  - Added Twitter Card tags for rich media previews
-  - Configured viewport settings for mobile responsiveness
+  - Wrapped application in `QueryClientProvider`
+  - Refactored classification logic to use `useMutation` hook
+  - Centralized loading and error states via React Query
 
-### ✅ Structured Data (JSON-LD)
-- **Implementation**: Added `WebApplication` schema to the main page
-- **Details**: Includes app name, category, description, and operating system info to help search engines understand the app's purpose.
-
-### ✅ Sitemap Generation
-- **Location**: `frontend/pages/sitemap.xml.tsx`
-- **Features**: Dynamically generates an XML sitemap listing the main and offline pages with appropriate priorities and change frequencies.
+### ✅ Service Worker & Caching
+- **Location**: `frontend/next.config.ts` (Verified)
+- **Features**:
+  - Confirmed `next-pwa` configuration
+  - Runtime caching strategies for API routes (NetworkFirst) and static assets (CacheFirst)
+  - Offline fallback support
 
 ## Technical Implementation Details
 
-### Structured Data Example
+### React Query Setup
 ```typescript
-<script
-  type="application/ld+json"
-  dangerouslySetInnerHTML={{
-    __html: JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "FlavorSnap",
-      // ...
-    })
-  }}
-/>
+const [queryClient] = useState(() => new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+}));
 ```
 
 ### API Error Handling with Retry

@@ -9,6 +9,7 @@ import type { GetStaticProps } from "next";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import * as z from "zod";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -38,7 +39,7 @@ export default function Classify() {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     reset,
   } = useForm<FormValues>({
     resolver: zodResolver(validationSchema),
@@ -63,8 +64,29 @@ export default function Classify() {
     }
   }, [imageFiles]);
 
-  const onSubmit = async (data: FormValues) => {
+  const mutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await api.post('/api/classify', formData, {
+        retries: 2,
+        retryDelay: 1000,
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setClassification(data);
+    },
+    onError: (error: Error) => {
+      setApiError(error.message);
+    },
+  });
+
+  const onSubmit = (data: FormValues) => {
     setApiError(null);
+    setClassification(null);
     const file = data.image[0];
 
     // Announce to screen readers that classification is starting
@@ -73,24 +95,10 @@ export default function Classify() {
       announcement.textContent = t('classifying');
     }
 
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
+    const formData = new FormData();
+    formData.append("image", file);
 
-      const response = await api.post('/api/classify', formData, {
-        retries: 2,
-        retryDelay: 1000,
-      });
-
-      if (response.error) {
-        setApiError(response.error);
-      } else if (response.data) {
-        setClassification(response.data);
-      }
-    } catch (err) {
-      setApiError(t('error_classify_retry'));
-      console.error('Classification error:', err);
-    }
+    mutation.mutate(formData);
   };
 
   return (
@@ -208,12 +216,12 @@ export default function Classify() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={mutation.isPending}
               className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-blue-600/50 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-              aria-label={isSubmitting ? t('classifying') : t('classify_food')}
-              aria-describedby={isSubmitting ? 'classification-announcement' : undefined}
+              aria-label={mutation.isPending ? t('classifying') : t('classify_food')}
+              aria-describedby={mutation.isPending ? 'classification-announcement' : undefined}
             >
-              {isSubmitting ? t('classifying') : t('classify_food')}
+              {mutation.isPending ? t('classifying') : t('classify_food')}
             </button>
 
             {classification && (
