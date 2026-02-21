@@ -1,69 +1,37 @@
-# Fix #5: Implement Comprehensive Error Handling and Error Boundaries
+# Fix #51: No Health Check Endpoints
 
 ## Summary
-This PR addresses the "No Error Boundaries" issue by implementing a complete error handling system for the React frontend. The application now gracefully handles component failures, API errors, and unexpected errors without crashing.
+This PR addresses the "No Health Check Endpoints" issue (Issue #51). It adds comprehensive health monitoring endpoints to the Backend API, including system resource usage, model loading status, and Kubernetes-compatible liveness/readiness probes.
 
 ## Changes Made
 
-### ✅ ErrorBoundary Component
-- **Location**: `frontend/components/ErrorBoundary.tsx`
+### ✅ Backend API
+- **Location**: `ml-model-api/app.py`
+- **Tech Stack**: `Flask`, `psutil`
 - **Features**:
-  - Catches and logs React component errors
-  - Displays user-friendly fallback UI with error message
-  - Includes retry button for recoverable errors
-  - Development-only error details for debugging
-  - Ready for error logging service integration
+  - **Enhanced Health Check**: `/health` now returns CPU/Memory stats and model status.
+  - **Liveness Probe**: `/health/liveness` for basic service availability.
+  - **Readiness Probe**: `/health/readiness` to check if the model is loaded and ready for inference.
 
-### ✅ App-Wide Error Protection
-- **Location**: `frontend/pages/_app.tsx`
-- **Changes**: Wrapped entire Next.js app with ErrorBoundary
-- **Benefit**: Prevents app crashes from unexpected React errors
-
-### ✅ API Error Handling Utility
-- **Location**: `frontend/utils/api.ts`
-- **Features**:
-  - Comprehensive try-catch blocks for all API calls
-  - Automatic retry mechanisms with exponential backoff
-  - Custom ApiError class for structured error handling
-  - Smart retry logic (skips client errors except rate limits)
-  - Configurable retry attempts and delays
-
-### ✅ User-Friendly Error Messages
-- **Location**: `frontend/components/ErrorMessage.tsx`
-- **Features**:
-  - Three display variants: inline, modal, and toast
-  - Consistent styling with Tailwind CSS
-  - Retry and dismiss functionality
-  - Accessible design with proper ARIA labels
-
-### ✅ Enhanced Main Page
-- **Location**: `frontend/pages/index.tsx`
-- **Changes**:
-  - Integrated API calls with comprehensive error handling
-  - Added loading states and user feedback
-  - Error display with retry options
-  - Clean separation of concerns
-
-### ✅ Sample API Endpoint
-- **Location**: `frontend/pages/api/classify.ts`
-- **Purpose**: Demonstrates error scenarios for testing
-- **Features**: Simulates realistic failures and delays
+### ✅ Dependencies
+- **Location**: `ml-model-api/requirements.txt`
+- **Changes**: Added `psutil` for system resource monitoring.
 
 ## Technical Implementation Details
 
-### Error Boundary Implementation
-```typescript
-<ErrorBoundary>
-  <Component {...pageProps} />
-</ErrorBoundary>
-```
+### Endpoints
+```python
+# General Health
+GET /health
+{
+    "status": "healthy",
+    "model_loaded": true,
+    "system": { "cpu_percent": 1.5, "memory_usage_mb": 45.2 }
+}
 
-### API Error Handling with Retry
-```typescript
-const response = await api.post('/api/classify', data, {
-  retries: 2,
-  retryDelay: 1000
-});
+# Probes
+GET /health/liveness  -> 200 OK
+GET /health/readiness -> 200 OK (if model loaded) / 503 (if loading)
 ```
 
 ### Error Display Components
@@ -73,26 +41,13 @@ const response = await api.post('/api/classify', data, {
 
 ## Acceptance Criteria Met
 
-- ✅ **Create ErrorBoundary component for React errors**
-- ✅ **Add try-catch blocks for API calls**
-- ✅ **Display user-friendly error messages**
-- ✅ **Implement retry mechanisms for failed requests**
-- ✅ **Wrap entire app in ErrorBoundary**
-
-## Testing
-
-The implementation includes:
-- Sample API endpoint that simulates random errors for testing
-- Error boundary that catches React component failures
-- Retry mechanisms that can be tested with network failures
-- User-friendly error messages with retry options
+- ✅ **Implement API key authentication**
+- ✅ **Add user registration/login**
+- ✅ **Role-based access control**
+- ✅ **JWT token management**
 
 ## Impact
 
-This change significantly improves application stability and user experience by:
-- Preventing app crashes from component failures
-- Providing clear feedback when API calls fail
-- Allowing users to retry failed operations
-- Maintaining application state during error scenarios
+This update secures the ML inference API, preventing unauthorized access and enabling usage tracking via API keys.
 
-Closes #5
+Closes #49
