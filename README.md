@@ -30,6 +30,7 @@ Snap a picture of your food and let AI identify the dish instantly!
 ## 🌟 Features
 
 ### 🎯 Core Functionality
+
 - **📸 Image Upload & Preview**: Drag-and-drop or click to upload food images
 - **🤖 AI-Powered Classification**: ResNet18 model trained on Nigerian dishes
 - **📊 Confidence Scores**: Get prediction confidence percentages
@@ -37,13 +38,16 @@ Snap a picture of your food and let AI identify the dish instantly!
 - **⚡ Real-time Processing**: Instant classification results
 
 ### 🎨 User Experience
+
 - **📱 Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 - **🎭 Modern UI**: Built with TailwindCSS and React components
 - **🔄 Loading States**: Visual feedback during processing
 - **❌ Error Handling**: User-friendly error messages and recovery
 - **🌙 Dark Mode Support**: Comfortable viewing in any lighting
+- **🌍 Internationalization (i18n)**: Multi-language support (English, French, Arabic, Yoruba) with RTL layout
 
 ### 🔧 Developer Features
+
 - **📡 RESTful API**: Clean API endpoints for integration
 - **🧪 Comprehensive Testing**: Unit, integration, and E2E tests
 - **📝 Type Safety**: Full TypeScript implementation
@@ -92,6 +96,7 @@ flavorsnap/
 ## 🛠️ Tech Stack
 
 ### 🎨 Frontend
+
 - **Framework**: Next.js 15.3.3 with React 19
 - **Language**: TypeScript 5
 - **Styling**: TailwindCSS 4
@@ -100,8 +105,10 @@ flavorsnap/
 - **HTTP Client**: Axios/Fetch API
 - **Form Handling**: React Hook Form
 - **Testing**: Jest & React Testing Library
+- **i18n**: next-i18next with RTL support
 
 ### 🧠 Machine Learning
+
 - **Framework**: PyTorch
 - **Architecture**: ResNet18 (ImageNet pretrained)
 - **Image Processing**: Pillow & torchvision
@@ -109,6 +116,7 @@ flavorsnap/
 - **Inference**: CPU-optimized for deployment
 
 ### ⚙️ Backend
+
 - **API**: Flask with RESTful endpoints
 - **Language**: Python 3.8+
 - **File Storage**: Local filesystem (configurable)
@@ -116,12 +124,14 @@ flavorsnap/
 - **Serialization**: JSON
 
 ### 🔗 Blockchain
+
 - **Platform**: Stellar/Soroban
 - **Language**: Rust
 - **Smart Contracts**: Model governance, incentives
 - **SDK**: Soroban SDK v22.0.6
 
 ### 🛠️ Development Tools
+
 - **Version Control**: Git
 - **Package Manager**: npm/yarn/pnpm
 - **Code Quality**: ESLint, Prettier
@@ -131,12 +141,14 @@ flavorsnap/
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+ and npm/yarn
 - Python 3.8+ and pip
 - Git
 - 4GB+ RAM for model loading
 
 ### One-Command Setup
+
 ```bash
 # Clone and setup everything
 git clone https://github.com/your-username/flavorsnap.git
@@ -147,12 +159,14 @@ npm run setup
 ### Manual Setup
 
 #### 1. Clone Repository
+
 ```bash
 git clone https://github.com/your-username/flavorsnap.git
 cd flavorsnap
 ```
 
 #### 2. Frontend Setup
+
 ```bash
 cd frontend
 npm install
@@ -162,6 +176,7 @@ npm run dev
 ```
 
 #### 3. Backend Setup
+
 ```bash
 cd ml-model-api
 pip install -r requirements.txt
@@ -169,6 +184,7 @@ python app.py
 ```
 
 #### 4. Access Application
+
 - Frontend: http://localhost:3000
 - API: http://localhost:5000
 
@@ -228,27 +244,32 @@ We love contributions! Whether you're fixing bugs, adding features, or improving
 ### 🎯 How to Contribute
 
 #### 1. Fork & Clone
+
 ```bash
 git clone https://github.com/your-username/flavorsnap.git
 cd flavorsnap
 ```
 
 #### 2. Setup Development Environment
+
 ```bash
 npm run dev:setup
 ```
 
 #### 3. Create Feature Branch
+
 ```bash
 git checkout -b feature/amazing-feature
 ```
 
 #### 4. Make Changes
+
 - Follow the existing code style
 - Add tests for new functionality
 - Update documentation as needed
 
 #### 5. Test Your Changes
+
 ```bash
 npm run test
 npm run lint
@@ -256,12 +277,14 @@ npm run build
 ```
 
 #### 6. Commit & Push
+
 ```bash
 git commit -m "feat: add amazing feature"
 git push origin feature/amazing-feature
 ```
 
 #### 7. Create Pull Request
+
 - Provide clear description of changes
 - Link relevant issues
 - Include screenshots for UI changes
@@ -269,6 +292,7 @@ git push origin feature/amazing-feature
 ### 📝 Development Guidelines
 
 #### Code Style
+
 - **TypeScript**: Strict mode enabled
 - **React**: Functional components with hooks
 - **CSS**: TailwindCSS utility classes
@@ -276,7 +300,9 @@ git push origin feature/amazing-feature
 - **Rust**: rustfmt formatting
 
 #### Commit Messages
+
 Follow [Conventional Commits](https://conventionalcommits.org/):
+
 - `feat:` New features
 - `fix:` Bug fixes
 - `docs:` Documentation changes
@@ -286,12 +312,14 @@ Follow [Conventional Commits](https://conventionalcommits.org/):
 - `chore:` Maintenance tasks
 
 #### Testing Requirements
+
 - Unit tests for all new functions
 - Integration tests for API endpoints
 - E2E tests for user workflows
 - Minimum 80% code coverage
 
 #### Pull Request Process
+
 1. Update README.md for new features
 2. Add/update tests
 3. Ensure CI/CD passes
@@ -301,6 +329,7 @@ Follow [Conventional Commits](https://conventionalcommits.org/):
 ### 🏆 Contribution Areas
 
 #### Frontend
+
 - UI/UX improvements
 - New components
 - Performance optimizations
@@ -308,6 +337,7 @@ Follow [Conventional Commits](https://conventionalcommits.org/):
 - Accessibility features
 
 #### Backend
+
 - API enhancements
 - Model optimization
 - Security improvements
@@ -315,6 +345,7 @@ Follow [Conventional Commits](https://conventionalcommits.org/):
 - Performance tuning
 
 #### Machine Learning
+
 - Model architecture improvements
 - New food categories
 - Accuracy enhancements
@@ -322,6 +353,7 @@ Follow [Conventional Commits](https://conventionalcommits.org/):
 - Model deployment
 
 #### Documentation
+
 - API documentation
 - Tutorials
 - Examples
@@ -333,9 +365,11 @@ Follow [Conventional Commits](https://conventionalcommits.org/):
 ### Endpoints
 
 #### POST /predict
+
 Classify uploaded food image.
 
 **Request:**
+
 ```bash
 curl -X POST \
   http://localhost:5000/predict \
@@ -343,23 +377,26 @@ curl -X POST \
 ```
 
 **Response:**
+
 ```json
 {
   "label": "Moi Moi",
   "confidence": 85.7,
   "all_predictions": [
-    {"label": "Moi Moi", "confidence": 85.7},
-    {"label": "Akara", "confidence": 9.2},
-    {"label": "Bread", "confidence": 3.1}
+    { "label": "Moi Moi", "confidence": 85.7 },
+    { "label": "Akara", "confidence": 9.2 },
+    { "label": "Bread", "confidence": 3.1 }
   ],
   "processing_time": 0.234
 }
 ```
 
 #### GET /health
+
 Check API health status.
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -369,9 +406,11 @@ Check API health status.
 ```
 
 #### GET /classes
+
 Get list of supported food classes.
 
 **Response:**
+
 ```json
 {
   "classes": ["Akara", "Bread", "Egusi", "Moi Moi", "Rice and Stew", "Yam"],
@@ -430,12 +469,14 @@ Test images are available in `tests/fixtures/images/` with proper labels for val
 ## 📊 Model Information
 
 ### Architecture
+
 - **Base Model**: ResNet18 (ImageNet pretrained)
 - **Input Size**: 224x224 RGB images
 - **Output Classes**: 6 Nigerian food categories
 - **Parameters**: 11.7M total, 1.2M trainable
 
 ### Training Details
+
 - **Dataset**: 2,400+ images (400 per class)
 - **Training Split**: 80% train, 20% validation
 - **Epochs**: 50 with early stopping
@@ -443,6 +484,7 @@ Test images are available in `tests/fixtures/images/` with proper labels for val
 - **Accuracy**: 94.2% validation accuracy
 
 ### Food Classes
+
 1. **Akara** - Bean cake
 2. **Bread** - Various bread types
 3. **Egusi** - Melon seed soup
@@ -451,6 +493,7 @@ Test images are available in `tests/fixtures/images/` with proper labels for val
 6. **Yam** - Yam dishes
 
 ### Performance Metrics
+
 - **Top-1 Accuracy**: 94.2%
 - **Top-3 Accuracy**: 98.7%
 - **Inference Time**: ~200ms (CPU)
@@ -461,6 +504,7 @@ Test images are available in `tests/fixtures/images/` with proper labels for val
 ### Common Issues
 
 #### Model Loading Fails
+
 ```bash
 # Check model path
 ls -la model.pth
@@ -469,6 +513,7 @@ python -c "import torch; print(torch.load('model.pth').keys())"
 ```
 
 #### Frontend Build Errors
+
 ```bash
 # Clear cache
 rm -rf .next node_modules
@@ -477,6 +522,7 @@ npm run build
 ```
 
 #### API Connection Issues
+
 ```bash
 # Check if API is running
 curl http://localhost:5000/health
@@ -485,6 +531,7 @@ curl -H "Origin: http://localhost:3000" http://localhost:5000/predict
 ```
 
 #### Memory Issues
+
 ```bash
 # Monitor memory usage
 python -c "import torch; print(f'GPU Available: {torch.cuda.is_available()}')"
@@ -494,6 +541,7 @@ python -c "import torch; print(f'GPU Available: {torch.cuda.is_available()}')"
 ### Debug Mode
 
 Enable debug logging:
+
 ```env
 DEBUG=true
 LOG_LEVEL=debug
