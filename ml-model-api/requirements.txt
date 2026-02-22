@@ -7,3 +7,4 @@ torch
 torchvision
 pillow
 psutil
+marshmallow==3.21.3
