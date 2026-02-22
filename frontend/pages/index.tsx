@@ -11,6 +11,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import * as z from "zod";
+import { analytics } from "@/utils/analytics";
+import { PerformanceTimer } from "@/utils/performance";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -57,6 +59,10 @@ export default function Classify() {
         setPreview(objectUrl);
         setClassification(null);
         setApiError(null);
+        
+        // Track image upload
+        analytics.trackImageUpload(file.size, file.type);
+        
         return () => URL.revokeObjectURL(objectUrl);
       }
     } else {
@@ -66,21 +72,58 @@ export default function Classify() {
 
   const mutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await api.post('/api/classify', formData, {
-        retries: 2,
-        retryDelay: 1000,
-      });
+      const timer = new PerformanceTimer('classification_request');
+      
+      try {
+        const response = await api.post('/api/classify', formData, {
+          retries: 2,
+          retryDelay: 1000,
+        });
 
-      if (response.error) {
-        throw new Error(response.error);
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        const duration = timer.end('Classification', 'success');
+        
+        // Track successful classification
+        if (response.data) {
+          analytics.trackClassification({
+            prediction: response.data.prediction || 'unknown',
+            confidence: response.data.confidence || 0,
+            fileSize: formData.get('image') ? (formData.get('image') as File).size : 0,
+            fileType: formData.get('image') ? (formData.get('image') as File).type : 'unknown',
+            duration,
+            success: true,
+          });
+        }
+        
+        return response.data;
+      } catch (error) {
+        timer.end('Classification', 'error');
+        throw error;
       }
-      return response.data;
     },
     onSuccess: (data) => {
       setClassification(data);
     },
     onError: (error: Error) => {
       setApiError(error.message);
+      
+      // Track API error
+      analytics.trackApiError('/api/classify', 500, error.message);
+      
+      // Track failed classification
+      const file = imageFiles?.[0];
+      if (file) {
+        analytics.trackClassification({
+          prediction: 'error',
+          confidence: 0,
+          fileSize: file.size,
+          fileType: file.type,
+          success: false,
+        });
+      }
     },
   });
 
@@ -88,6 +131,9 @@ export default function Classify() {
     setApiError(null);
     setClassification(null);
     const file = data.image[0];
+
+    // Track classify button click
+    analytics.trackButtonClick('classify_food', 'main_page');
 
     // Announce to screen readers that classification is starting
     const announcement = document.getElementById('classification-announcement');
@@ -180,7 +226,10 @@ export default function Classify() {
 
         <button
           type="button"
-          onClick={() => hiddenInputRef.current?.click()}
+          onClick={() => {
+            analytics.trackButtonClick('open_camera', 'main_page');
+            hiddenInputRef.current?.click();
+          }}
           className="bg-accent text-white px-6 py-3 rounded-full mb-4 focus:outline-none focus:ring-4 focus:ring-accent/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
           aria-label={t("open_camera")}
         >
