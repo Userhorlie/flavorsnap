@@ -71,6 +71,9 @@ export default function Classify() {
     setLoading(true);
     setError(null);
 
+    // Track classify button click
+    analytics.trackButtonClick('classify_food', 'main_page');
+
     // Announce to screen readers that classification is starting
     const announcement = document.getElementById('classification-announcement');
     if (announcement) {
