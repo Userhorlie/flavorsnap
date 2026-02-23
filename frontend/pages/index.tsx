@@ -7,6 +7,9 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import type { GetStaticProps } from "next";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { compressImage, validateImageFile, formatFileSize } from "@/utils/imageCompression";
+import Link from "next/link";
+import Head from "next/head";
+import Footer from "@/components/Footer";
 import Layout from "@/components/Layout";
 import Head from "next/head";
 
@@ -110,6 +113,64 @@ export default function Classify() {
   };
 
   return (
+    <>
+      <Head>
+        <title>FlavorSnap - AI Food Classification</title>
+        <meta name="description" content="Instantly identify food with AI-powered image recognition" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+
+      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+        {/* Navigation Header */}
+        <header className="absolute top-0 left-0 right-0 bg-white/90 backdrop-blur-sm shadow-sm z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="text-2xl font-bold text-accent">
+                FlavorSnap 🍛
+              </div>
+              <nav className="flex space-x-4">
+                <Link
+                  href="/"
+                  className="text-accent font-medium focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded-md px-3 py-2 text-sm"
+                  aria-current="page"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/about"
+                  className="text-gray-600 hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded-md px-3 py-2 text-sm font-medium"
+                >
+                  About
+                </Link>
+                <Link
+                  href="/contact"
+                  className="text-gray-600 hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded-md px-3 py-2 text-sm font-medium"
+                >
+                  Contact
+                </Link>
+              </nav>
+              <div>
+                <LanguageSwitcher />
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Language Switcher - Top Right */}
+        <div className="absolute top-20 end-4">
+          {/* Language switcher moved to header */}
+        </div>
+
+        <h1 className="text-3xl font-bold mb-6">{t("snap_your_food")} 🍛</h1>
+
+        {/* Screen reader announcements */}
+        <div
+          id="classification-announcement"
+          role="status"
+          aria-live="polite"
+          className="sr-only"
+        />
+
     <Layout title="FlavorSnap - AI Food Classification" description="Instantly identify food with AI-powered image recognition">
       <div className="flex flex-col items-center justify-center p-6">
         <h1 className="text-3xl font-bold mb-6">{t("snap_your_food")} 🍛</h1>
@@ -231,6 +292,8 @@ export default function Classify() {
           </div>
         )}
       </div>
+      <Footer />
+    </>
     </Layout>
   );
 
