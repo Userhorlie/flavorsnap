@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useState } from "react";
+import Image from "next/image"; // Added for Hero Image
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
@@ -9,44 +10,74 @@ import Layout from "@/components/Layout";
 export default function Classify() {
   const { t } = useTranslation("common");
   const [image, setImage] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null); // Added to store actual file for API
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [classification, setClassification] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
 
     setError(null);
     setClassification(null);
+    setFile(selectedFile);
     
-    // Bypass compression and just show the raw image
-    const imageUrl = URL.createObjectURL(file);
+    const imageUrl = URL.createObjectURL(selectedFile);
     setImage(imageUrl);
   };
 
   const handleClassify = async () => {
-    if (!image) return;
+    if (!file) return;
     setLoading(true);
     setError(null);
 
-    // Mock API call to prevent further errors while testing UI
-    setTimeout(() => {
-      setClassification({ result: "Looks delicious! (Mock Data)" });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Classification failed");
+
+      const result = await response.json();
+      setClassification(result);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
     <Layout title="FlavorSnap - AI Food Classification" description="Instantly identify food with AI-powered image recognition">
-      <div className="flex flex-col items-center justify-center p-6">
-        <h1 className="text-3xl font-bold mb-6">{t("snap_your_food")} 🍛</h1>
+      
+      {/* --- HERO SECTION (Issue #24 Fix) --- */}
+      <div className="w-full flex justify-center pt-6 px-6">
+        <div className="relative w-full max-w-[500px] h-[300px] overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800">
+          <Image 
+            src="/images/hero_img.png" 
+            alt="FlavorSnap Hero"
+            fill
+            priority
+            className="object-cover"
+          />
+        </div>
+      </div>
+      {/* ------------------------------------ */}
+
+      <div className="flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-3xl font-bold mb-2">{t("snap_your_food")} 🍛</h1>
+        <p className="text-gray-500 mb-6">Upload a photo to see the magic</p>
 
         {error && (
           <ErrorMessage
             message={error}
-            onRetry={() => setError(null)}
+            onRetry={handleClassify}
             onDismiss={() => setError(null)}
           />
         )}
@@ -61,7 +92,7 @@ export default function Classify() {
 
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="bg-accent text-white px-6 py-3 rounded-full mb-4 focus:outline-none focus:ring-4 focus:ring-accent/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full mb-4 transition-all"
         >
           {t("open_camera")}
         </button>
@@ -71,21 +102,23 @@ export default function Classify() {
             <img
               src={image}
               alt={t("preview_alt")}
-              className="rounded-xl shadow-md max-w-sm mx-auto mb-4"
+              className="rounded-xl shadow-md max-w-sm mx-auto mb-4 border-2 border-accent/20"
             />
 
             <button
               onClick={handleClassify}
               disabled={loading}
-              className="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="bg-accent text-white px-10 py-3 rounded-full hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
             >
               {loading ? t('classifying') : t('classify_food')}
             </button>
 
             {classification && (
-              <div className="mt-6 p-4 bg-green-50 dark:bg-green-900 rounded-lg max-w-sm mx-auto">
-                <h3 className="font-semibold text-green-800 dark:text-green-100 mb-2">{t('classification_result')}:</h3>
-                <p className="text-green-700 dark:text-green-200">{JSON.stringify(classification, null, 2)}</p>
+              <div className="mt-6 p-6 bg-white dark:bg-gray-800 border border-green-200 dark:border-green-900 rounded-2xl shadow-sm max-w-sm mx-auto">
+                <h3 className="font-bold text-xl text-green-600 mb-2">{classification.label}</h3>
+                <p className="text-sm text-gray-500">
+                  Confidence: {(classification.confidence * 100).toFixed(2)}%
+                </p>
               </div>
             )}
           </div>
