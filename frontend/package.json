@@ -14,8 +14,10 @@
     "i18next": "^25.8.13",
     "next": "15.3.3",
     "next-i18next": "^15.4.3",
+    "onnxruntime-node": "^1.24.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
