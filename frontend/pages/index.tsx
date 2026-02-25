@@ -2,6 +2,7 @@
 import { useRef, useState, useEffect } from "react";
 import Head from "next/head";
 import { api } from "@/utils/api";
+import Image from "next/image"; // Added for Hero Image
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
@@ -10,6 +11,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import Layout from "@/components/Layout";
 import * as z from "zod";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -28,7 +30,7 @@ const validationSchema = z.object({
     ),
 });
 
-type FormValues = z.infer<typeof validationSchema>;
+type FormValues = z.infer<typeof validationSchema>
 
 async function optimizeImageForUpload(file: File): Promise<File> {
   try {
@@ -65,39 +67,12 @@ async function optimizeImageForUpload(file: File): Promise<File> {
 
 export default function Classify() {
   const { t } = useTranslation("common");
-  const [preview, setPreview] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null); // Added to store actual file for API
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [classification, setClassification] = useState<any>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const hiddenInputRef = useRef<HTMLInputElement | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-    reset,
-  } = useForm<FormValues>({
-    resolver: zodResolver(validationSchema),
-    mode: "onChange",
-  });
-
-  const imageFiles = watch("image");
-  const { ref: registerRef, ...registerRest } = register("image");
-
-  useEffect(() => {
-    if (imageFiles && imageFiles.length > 0) {
-      const file = imageFiles[0];
-      if (file.type && file.type.startsWith("image/")) {
-        const objectUrl = URL.createObjectURL(file);
-        setPreview(objectUrl);
-        setClassification(null);
-        setApiError(null);
-        return () => URL.revokeObjectURL(objectUrl);
-      }
-    } else {
-      setPreview(null);
-    }
-  }, [imageFiles]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const mutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -133,8 +108,41 @@ export default function Classify() {
 
     const formData = new FormData();
     formData.append("image", optimizedFile, optimizedFile.name);
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
 
-    mutation.mutate(formData);
+    setError(null);
+    setClassification(null);
+    setFile(selectedFile);
+    
+    const imageUrl = URL.createObjectURL(selectedFile);
+    setImage(imageUrl);
+  };
+
+  const handleClassify = async () => {
+    if (!file) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Classification failed");
+
+      const result = await response.json();
+      setClassification(result);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -290,6 +298,77 @@ export default function Classify() {
         </form>
       </div>
     </div>
+    <Layout title="FlavorSnap - AI Food Classification" description="Instantly identify food with AI-powered image recognition">
+      
+      {/* --- HERO SECTION (Issue #24 Fix) --- */}
+      <div className="w-full flex justify-center pt-6 px-6">
+        <div className="relative w-full max-w-[500px] h-[300px] overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800">
+          <Image 
+            src="/images/hero_img.png" 
+            alt="FlavorSnap Hero"
+            fill
+            priority
+            className="object-cover"
+          />
+        </div>
+      </div>
+      {/* ------------------------------------ */}
+
+      <div className="flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-3xl font-bold mb-2">{t("snap_your_food")} 🍛</h1>
+        <p className="text-gray-500 mb-6">Upload a photo to see the magic</p>
+
+        {error && (
+          <ErrorMessage
+            message={error}
+            onRetry={handleClassify}
+            onDismiss={() => setError(null)}
+          />
+        )}
+
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={handleImageChange}
+          className="hidden"
+        />
+
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full mb-4 transition-all"
+        >
+          {t("open_camera")}
+        </button>
+        
+        {image && (
+          <div className="mt-6 text-center">
+            <img
+              src={image}
+              alt={t("preview_alt")}
+              className="rounded-xl shadow-md max-w-sm mx-auto mb-4 border-2 border-accent/20"
+            />
+
+            <button
+              onClick={handleClassify}
+              disabled={loading}
+              className="bg-accent text-white px-10 py-3 rounded-full hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
+            >
+              {loading ? t('classifying') : t('classify_food')}
+            </button>
+
+            {classification && (
+              <div className="mt-6 p-6 bg-white dark:bg-gray-800 border border-green-200 dark:border-green-900 rounded-2xl shadow-sm max-w-sm mx-auto">
+                <h3 className="font-bold text-xl text-green-600 mb-2">{classification.label}</h3>
+                <p className="text-sm text-gray-500">
+                  Confidence: {(classification.confidence * 100).toFixed(2)}%
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Layout>
   );
 }
 
