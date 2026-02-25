@@ -1,172 +1,150 @@
 import os
+import time
 import uuid
-import logging
-import psutil
+import base64
+import io
+import torch
+import torchvision.transforms as transforms
+from torchvision import models
+from PIL import Image
 from functools import wraps
+from datetime import datetime, timezone
+from typing import Dict, Any, Optional
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_jwt_extended import (
-    JWTManager, create_access_token, jwt_required, 
-    get_jwt_identity, verify_jwt_in_request
-)
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from marshmallow import Schema, fields, validate
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Attempt to import custom logger, fallback to default if missing
+try:
+    from logger_config import logger
+except ImportError:
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+CORS(app)
 
-# Configuration
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-jwt-secret')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# --- ML MODEL SETUP ---
+# Path logic: model.pth is in the parent directory of ml-model-api/
+MODEL_PATH = os.path.join(os.getcwd(), '..', 'model.pth')
+CLASSES_PATH = os.path.join(os.getcwd(), '..', 'food_classes.txt')
 
-# Initialize Extensions
-CORS(app, origins=[os.environ.get("FRONTEND_URL", "http://localhost:3000")])
-db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)
-jwt = JWTManager(app)
-
-# Global state for model status (Mocked for now)
-MODEL_LOADED = True
-
-# --- Models ---
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    role = db.Column(db.String(20), default='user') # user, admin
-    api_key = db.Column(db.String(64), unique=True, nullable=True)
-
-    def set_password(self, password):
-        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
-
-    def check_password(self, password):
-        return bcrypt.check_password_hash(self.password_hash, password)
-
-    def generate_api_key(self):
-        self.api_key = str(uuid.uuid4())
-
-# --- Decorators ---
-def api_key_or_jwt_required(fn):
-    @wraps(fn)
-    def decorator(*args, **kwargs):
-        # 1. Check API Key
-        api_key = request.headers.get('X-API-KEY')
-        if api_key:
-            user = User.query.filter_by(api_key=api_key).first()
-            if user:
-                return fn(*args, **kwargs)
-        
-        # 2. Check JWT
-        try:
-            verify_jwt_in_request()
-            return fn(*args, **kwargs)
-        except:
-            return jsonify({"error": "Authentication required (API Key or JWT)"}), 401
-    return decorator
-
-def role_required(role):
-    def wrapper(fn):
-        @wraps(fn)
-        @jwt_required()
-        def decorator(*args, **kwargs):
-            user_id = get_jwt_identity()
-            user = User.query.get(user_id)
-            if not user or (user.role != role and user.role != 'admin'):
-                return jsonify({"error": "Insufficient permissions"}), 403
-            return fn(*args, **kwargs)
-        return decorator
-    return wrapper
-
-# --- Routes ---
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    if not data or not data.get('username') or not data.get('password'):
-        return jsonify({"error": "Username and password required"}), 400
+def load_ml_components():
+    # 1. Load Labels
+    with open(CLASSES_PATH, 'r') as f:
+        labels = [line.strip() for line in f if line.strip()]
     
-    if User.query.filter_by(username=data['username']).first():
-        return jsonify({"error": "Username already exists"}), 400
+    # 2. Initialize ResNet18
+    model = models.resnet18()
+    model.fc = torch.nn.Linear(model.fc.in_features, len(labels))
     
-    user = User(username=data['username'], role=data.get('role', 'user'))
-    user.set_password(data['password'])
-    user.generate_api_key()
+    # 3. Load Weights
+    if os.path.exists(MODEL_PATH):
+        model.load_state_dict(torch.load(MODEL_PATH, map_location='cpu'))
+        logger.info(f"Model loaded successfully from {MODEL_PATH}")
+    else:
+        logger.warning(f"Model file not found at {MODEL_PATH}. Using untrained weights.")
     
-    db.session.add(user)
-    db.session.commit()
-    
-    return jsonify({
-        "message": "User registered successfully",
-        "api_key": user.api_key
-    }), 201
+    model.eval()
+    return model, labels
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    user = User.query.filter_by(username=data.get('username')).first()
-    
-    if user and user.check_password(data.get('password')):
-        token = create_access_token(identity=user.id)
-        return jsonify({
-            "access_token": token,
-            "api_key": user.api_key,
-            "role": user.role
-        }), 200
-    
-    return jsonify({"error": "Invalid credentials"}), 401
+# Load once on startup
+ML_MODEL, FOOD_LABELS = load_ml_components()
 
+# Image Preprocessing Transform
+preprocess = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+# --- UTILS & MIDDLEWARE ---
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
+
+def get_request_id() -> str:
+    return request.headers.get("X-Request-ID", uuid.uuid4().hex)
+
+def make_success_response(data: Dict[str, Any], status_code: int = 200):
+    body = dict(data)
+    body["request_id"] = get_request_id()
+    return jsonify(body), status_code
+
+# In-memory store (placeholder for DB)
+_predictions_store = []
+
+# --- ROUTES ---
 @app.route('/predict', methods=['POST'])
-@api_key_or_jwt_required
+@limiter.limit("10 per minute")
 def predict():
-    if 'image' not in request.files:
-        return jsonify({"error": "No image provided"}), 400
+    start_time = time.time()
     
-    # Mock response preserving existing API contract
-    return jsonify({
-        "label": "Moi Moi",
-        "confidence": 85.7,
-        "all_predictions": [
-            { "label": "Moi Moi", "confidence": 85.7 },
-            { "label": "Akara", "confidence": 9.2 },
-            { "label": "Bread", "confidence": 3.1 }
-        ],
-        "processing_time": 0.234
-    })
+    # 1. Validation
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image provided'}), 400
+    
+    file = request.files['image']
+    
+    try:
+        # 2. Inference Logic
+        img_bytes = file.read()
+        image = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+        
+        # Preprocess -> Tensor -> Model
+        input_tensor = preprocess(image).unsqueeze(0)
+        with torch.no_grad():
+            outputs = ML_MODEL(input_tensor)
+            probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
+            
+            # Get Top 3 Predictions
+            top3_prob, top3_idx = torch.topk(probabilities, 3)
+        
+        # 3. Format Response
+        main_label = FOOD_LABELS[top3_idx[0].item()]
+        main_conf = float(top3_prob[0].item())
+        
+        all_predictions = [
+            {"label": FOOD_LABELS[idx.item()], "confidence": float(prob.item())}
+            for prob, idx in zip(top3_prob, top3_idx)
+        ]
+
+        processing_time = round(time.time() - start_time, 4)
+        pred_id = str(uuid.uuid4())
+        
+        response_data = {
+            "id": pred_id,
+            "label": main_label,
+            "confidence": main_conf,
+            "all_predictions": all_predictions,
+            "processing_time": processing_time,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+
+        # 4. Save to History
+        _predictions_store.append(response_data)
+        
+        return make_success_response(response_data)
+
+    except Exception as e:
+        logger.error(f"Inference error: {str(e)}")
+        return jsonify({'error': 'Inference failed', 'details': str(e)}), 500
 
 @app.route('/health', methods=['GET'])
-def health():
-    process = psutil.Process(os.getpid())
+def health_check():
     return jsonify({
-        "status": "healthy", 
-        "auth_enabled": True, 
-        "version": "1.1.0",
-        "model_loaded": MODEL_LOADED,
-        "system": {
-            "cpu_percent": psutil.cpu_percent(),
-            "memory_usage_mb": process.memory_info().rss / 1024 / 1024
-        }
-    })
-
-@app.route('/health/liveness', methods=['GET'])
-def liveness():
-    return jsonify({"status": "alive"}), 200
-
-@app.route('/health/readiness', methods=['GET'])
-def readiness():
-    return jsonify({"status": "ready" if MODEL_LOADED else "loading"}), 200 if MODEL_LOADED else 503
-
-@app.route('/classes', methods=['GET'])
-def get_classes():
-    return jsonify({
-        "classes": ["Akara", "Bread", "Egusi", "Moi Moi", "Rice and Stew", "Yam"],
-        "count": 6
+        'status': 'healthy',
+        'model_loaded': ML_MODEL is not None,
+        'classes_count': len(FOOD_LABELS),
+        'timestamp': time.time()
     })
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host='0.0.0.0', port=port)
